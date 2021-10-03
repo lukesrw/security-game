@@ -1,0 +1,7 @@
+16x16
+32x32
+5_RPG_Makers
+*_16x16.*
+*_32x32.*
+node_modules
+/logs/
