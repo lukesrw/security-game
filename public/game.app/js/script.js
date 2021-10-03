@@ -6,6 +6,14 @@ function toGrid(x_or_y) {
     return Math.floor(x_or_y / SIZE) * SIZE;
 }
 
+function getSheet(name, src) {
+    image[name] = new Image();
+    image[name].onload = function () {
+        render(true);
+    };
+    image[name].src = "/assets/modern_interiors/" + src;
+}
+
 // classes
 function Mouse() {
     var that = this;
@@ -32,6 +40,7 @@ function Mouse() {
     that.onClick = function () {
         if (keyboard.isPressed("Shift")) {
             tiles.push([
+                spritesheet,
                 coords.x * SIZE,
                 coords.y * SIZE,
                 mouse.size.x * SIZE,
@@ -71,7 +80,20 @@ function Mouse() {
                 break;
 
             case "wheel":
-                var is_scroll_down = event.deltaY > 0;
+                var keys = Object.keys(image);
+                var key = keys.indexOf(spritesheet);
+
+                if (event.deltaY > 0) {
+                    key += 1;
+                } else {
+                    key -= 1;
+                }
+
+                if (typeof keys[key] === "undefined") {
+                    key = key > 0 ? 0 : keys.length - 1;
+                }
+
+                spritesheet = keys[key];
                 break;
 
             case "mousedown":
@@ -138,8 +160,112 @@ function Keyboard(keys) {
     };
 }
 
+function inShadow(context, callable) {
+    context.shadowColor = "#000000AA";
+    context.shadowBlur = SIZE / 2;
+
+    callable();
+
+    context.shadowBlur = 0;
+}
+
+function Character() {
+    var that = this;
+
+    that.text = [];
+
+    that.renderBase = function (context, x, y) {
+        /**
+         * @todo generate using hair/eyes/body/etc.
+         */
+        inShadow(context, function () {
+            context.drawImage(image.character, SIZE * 3, 0, SIZE, SIZE * 2, x, y, SIZE, SIZE * 2);
+        });
+
+        return image.character.complete;
+    };
+
+    that.render = function (context, init_x, init_y) {
+        if (that.text.length) {
+            if (typeof that.text === "string") that.text = [that.text];
+
+            var longest = that.text[0];
+            for (var i = 1; i < that.text.length; i += 1) {
+                if (that.text[i].length > longest.length) {
+                    longest = that.text[i];
+                }
+            }
+
+            var font = context.measureText(longest);
+            var width = font.width - 12;
+            var corners = 33;
+
+            font = (font.actualBoundingBoxAscent + font.actualBoundingBoxDescent) * 1.8;
+
+            var height = (that.text.length - 1) * font;
+            var x = init_x + SIZE / 4;
+            var y = init_y - (SIZE / 4 + height);
+
+            inShadow(context, function () {
+                context.fillStyle = "#8E97C7";
+                context.fillRect(x + 6, y + corners, width + corners, height + corners - 6);
+            });
+
+            that.renderBase(context, init_x, init_y);
+
+            // top left
+            context.drawImage(image.ui, 192, 0, corners, SIZE, x, y, corners, SIZE);
+            y += SIZE;
+
+            // left
+            context.drawImage(image.ui, 192, SIZE, corners, 2, x, y, corners, height);
+            y += height;
+
+            // bottom left
+            context.drawImage(image.ui, 192, 54, corners, 45, x, y, corners, 45);
+            x += corners;
+
+            // bottom
+            context.drawImage(image.ui, 225, 54, 3, 45, x, y, width, 45);
+            x += width;
+
+            // bottom right
+            context.drawImage(image.ui, 228, 54, 13, 45, x, y, 13, 45);
+            y -= height;
+
+            // right
+            context.drawImage(image.ui, 228, SIZE, 13, 6, x, y, 13, height);
+            y -= SIZE;
+
+            // top right
+            context.drawImage(image.ui, 228, 0, 13, SIZE, x, y, 13, SIZE);
+            x -= width;
+
+            // top
+            context.drawImage(image.ui, 227, 0, 1, SIZE, x, y, width, SIZE);
+            x -= 17.5;
+            y += SIZE - 1;
+
+            // middle
+            context.fillStyle = "#EBE1F6";
+            context.fillRect(x, y, width + 17.5, height + 1);
+
+            // text
+            context.fillStyle = "#000";
+            that.text.forEach(function (line) {
+                context.fillText(line, x, y);
+
+                y += font;
+            });
+        } else {
+            that.renderBase(context, init_x, init_y);
+        }
+    };
+}
+
 // globals
-var tiles = [];
+var spritesheet = "interiors";
+var tiles = [["interiors", 384, 0, 192, 96, 144, 192, 192, 96]];
 var mouse = new Mouse();
 var coords = {
     x: 0,
@@ -164,9 +290,9 @@ var keyboard = new Keyboard({
     ArrowRight: {
         keydown: function () {
             if (keyboard.isPressed("Shift")) {
-                coords.x = Math.min(spritesheets.interiors.width / SIZE - 1, coords.x + 1);
+                coords.x = Math.min(image[spritesheet].width / SIZE - 1, coords.x + 1);
             } else {
-                mouse.size.x = Math.min(spritesheets.interiors.width / SIZE, mouse.size.x + 1);
+                mouse.size.x = Math.min(image[spritesheet].width / SIZE, mouse.size.x + 1);
             }
 
             render();
@@ -186,9 +312,9 @@ var keyboard = new Keyboard({
     ArrowDown: {
         keydown: function () {
             if (keyboard.isPressed("Shift")) {
-                coords.y = Math.min(spritesheets.interiors.height / SIZE - 1, coords.y + 1);
+                coords.y = Math.min(image[spritesheet].height / SIZE - 1, coords.y + 1);
             } else {
-                mouse.size.y = Math.min(spritesheets.interiors.height / SIZE, mouse.size.y + 1);
+                mouse.size.y = Math.min(image[spritesheet].height / SIZE, mouse.size.y + 1);
             }
 
             render();
@@ -220,18 +346,33 @@ canvas.addEventListener("keydown", keyboard.onEvent);
 
 // context setup
 var context = canvas.getContext("2d");
-
+context.font = "13px Courier New";
+context.textAlign = "left";
+context.textBaseline = "middle";
 context.webkitImageSmoothingEnabled = false;
 context.imageSmoothingEnabled = false;
 
-var spritesheets = {};
-spritesheets.interiors = new Image();
-spritesheets.interiors.src = "/assets/modern_interiors/1_Interiors/48x48/Theme_Sorter_48x48/18_Jail_48x48.png";
+var image = {
+    interiors: new Image(),
+    character: new Image(),
+    ui: new Image()
+};
 
-var first_render = true;
+Object.keys(image).forEach(function (name) {
+    image[name].onload = function () {
+        render(true);
+    };
+});
 
-function render() {
-    if (first_render || document.hasFocus()) {
+getSheet("interiors", "1_Interiors/48x48/Theme_Sorter_48x48/18_Jail_48x48.png");
+getSheet("character", "2_Characters/Character_Generator/0_Premade_Characters/48x48/Premade_Character_48x48_19.png");
+getSheet("ui", "4_User_Interface_Elements/UI_48x48.png");
+getSheet("floor", "1_Interiors/48x48/Room_Builder_subfiles_48x48/Room_Builder_Floors_48x48.png");
+
+var character = new Character();
+
+function render(is_force) {
+    if (is_force || document.hasFocus()) {
         first_render = false;
 
         context.clearRect(0, 0, canvas.width, canvas.height);
@@ -242,7 +383,7 @@ function render() {
 
         // tiles
         tiles.forEach(function (tile) {
-            context.drawImage(spritesheets.interiors, ...tile);
+            context.drawImage(image[tile[0]], ...tile.slice(1));
         });
 
         // cursor
@@ -251,7 +392,7 @@ function render() {
         var is_draw_mode = keyboard.isPressed("Shift");
         if (is_draw_mode) {
             context.drawImage(
-                spritesheets.interiors,
+                image[spritesheet],
                 coords.x * SIZE,
                 coords.y * SIZE,
                 mouse.size.x * SIZE,
@@ -266,9 +407,12 @@ function render() {
         }
 
         context.globalAlpha = 1;
+
+        character.text = ["Excuse me miss,", "do you have ID?"];
+        character.render(context, 4 * SIZE, 4 * SIZE);
     }
 }
 
 setInterval(render, 1000);
 
-render();
+render(true);
