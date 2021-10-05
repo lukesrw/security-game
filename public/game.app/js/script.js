@@ -217,55 +217,28 @@ function createSpeech(context, text, left_x, top_y, entity, prerender) {
 
     var height = (text.length - 1) * font;
     var x = left_x + SIZE / 4;
-    var y = top_y - (SIZE / 4 + height);
+    var y = top_y - SIZE / 2;
 
     inShadow(context, function () {
-        var bounds = [x + 6, y + corners, width + corners, height + corners - 6];
+        var bounds = [x + 6 - 2000, y + 21, width + corners, height + corners - 6];
 
         if (entity) entity.bounds = [bounds];
 
-        context.fillStyle = "#8E97C7";
+        context.shadowOffsetX = 2000;
         context.fillRect(...bounds);
+        context.shadowOffsetX = 0;
     });
 
     if (typeof prerender === "function") prerender();
 
-    // top left
-    context.drawImage(getSheet("ui"), 192, 0, corners, SIZE, x, y, corners, SIZE);
-    y += SIZE;
+    image.ui.tiles.speech.render(context, x, y, {
+        width: width,
+        height: height,
+        anchor: "bottom left"
+    });
 
-    // left
-    context.drawImage(getSheet("ui"), 192, SIZE, corners, 2, x, y, corners, height);
-    y += height;
-
-    // bottom left
-    context.drawImage(getSheet("ui"), 192, 54, corners, 45, x, y, corners, 45);
-    x += corners;
-
-    // bottom
-    context.drawImage(getSheet("ui"), 225, 54, 3, 45, x, y, width, 45);
-    x += width;
-
-    // bottom right
-    context.drawImage(getSheet("ui"), 228, 54, 13, 45, x, y, 13, 45);
-
-    // right
-    y -= height;
-    context.drawImage(getSheet("ui"), 228, SIZE, 13, 6, x, y, 13, height);
-
-    // top right
-    y -= SIZE;
-    context.drawImage(getSheet("ui"), 228, 0, 13, SIZE, x, y, 13, SIZE);
-
-    // top
-    x -= width;
-    context.drawImage(getSheet("ui"), 227, 0, 1, SIZE, x, y, width, SIZE);
-
-    // middle
-    x -= 17.5;
-    y += SIZE - 1;
-    context.fillStyle = "#EBE1F6";
-    context.fillRect(x, y, width + 17.5, height + 1);
+    x += 16;
+    y += 35;
 
     // text
     context.fillStyle = "#000";
@@ -675,7 +648,11 @@ context.textBaseline = "middle";
 context.webkitImageSmoothingEnabled = false;
 context.imageSmoothingEnabled = false;
 
-var image = {};
+var image = {
+    ui: new Tilesheet("/assets/modern_interiors/4_User_Interface_Elements/UI_48x48.png")
+};
+
+image.ui.createTile("speech", 4, 0, 1, 2).setSplit(33, 48, 3, 6);
 
 Object.keys(image).forEach(function (name) {
     image[name].onload = function () {
@@ -697,8 +674,6 @@ entities.push(
 );
 
 function render(is_force) {
-    console.log(document.hasFocus());
-
     if (is_force || document.hasFocus()) {
         first_render = false;
 
