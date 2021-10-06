@@ -11,19 +11,13 @@ var getSheet_names = {
 };
 function getSheet(name, src) {
     if (!(name in image)) {
-        image[name] = new Image();
-
-        image[name].onload = function () {
-            render(true);
-        };
-
         if (name in getSheet_names) {
             src = getSheet_names[name];
         } else {
             getSheet_names[name] = src;
         }
 
-        image[name].src = "/assets/modern_interiors/" + src;
+        image[name] = new Tilesheet("/assets/modern_interiors/" + src);
     }
 
     return image[name].complete ? image[name] : false;
@@ -186,11 +180,15 @@ function getCharacterSheet(part, index, colour) {
     return getSheet(name, src + ".png");
 }
 
-function inShadow(context, callable) {
+function inShadow(context, callable, is_shadow_only) {
+    if (is_shadow_only) context.shadowOffsetX = 2000;
+
     context.shadowColor = "#000000AA";
     context.shadowBlur = SIZE / 2;
 
     callable();
+
+    if (is_shadow_only) context.shadowOffsetX = 0;
 
     context.shadowBlur = 0;
 }
@@ -219,23 +217,34 @@ function createSpeech(context, text, left_x, top_y, entity, prerender) {
     var x = left_x + SIZE / 4;
     var y = top_y - SIZE / 2;
 
-    inShadow(context, function () {
-        var bounds = [x + 6 - 2000, y + 21, width + corners, height + corners - 6];
+    inShadow(
+        context,
+        function () {
+            var bounds = [x + 6 - 2000, y + 21, width + corners, height + corners - 6];
 
-        if (entity) entity.bounds = [bounds];
+            if (entity) entity.bounds = [bounds];
 
-        context.shadowOffsetX = 2000;
-        context.fillRect(...bounds);
-        context.shadowOffsetX = 0;
-    });
+            context.fillRect(...bounds);
+        },
+        true
+    );
 
     if (typeof prerender === "function") prerender();
 
-    image.ui.tiles.speech.render(context, x, y, {
-        width: width,
-        height: height,
-        anchor: "bottom left"
-    });
+    image.ui.tiles.speech.render(
+        context,
+        {
+            x,
+            y
+        },
+        {
+            size: {
+                x: width,
+                y: height
+            },
+            anchor: "bottom left"
+        }
+    );
 
     x += 16;
     y += 35;
@@ -289,7 +298,7 @@ function Mouse() {
     };
 
     that.onClick = function () {
-        if (keyboard.isPressed("Shift")) {
+        if (keyboard.isPressed("CapsLock")) {
             tiles.push([
                 spritesheet,
                 coords.x * SIZE,
@@ -332,7 +341,6 @@ function Mouse() {
                 if (x_grid !== that.grid.x || y_grid !== that.grid.y) {
                     that.grid.x = x_grid;
                     that.grid.y = y_grid;
-                    render();
                 }
 
                 that.onMove();
@@ -405,7 +413,11 @@ function Keyboard(keys) {
                     };
                 }
 
-                that.keys[event.key].is_pressed = event.type === "keydown";
+                if (event.key === "CapsLock") {
+                    that.keys[event.key].is_pressed = event.getModifierState("CapsLock");
+                } else {
+                    that.keys[event.key].is_pressed = event.type === "keydown";
+                }
 
                 if (typeof that.keys[event.key][event.type] === "function") {
                     that.keys[event.key][event.type](event);
@@ -430,8 +442,6 @@ function Character(setup) {
                 that.text.push("", "Hello?!");
 
                 that.state = "waiting";
-
-                render();
                 break;
         }
     };
@@ -559,6 +569,7 @@ function Character(setup) {
 }
 
 // globals
+var frame = 0;
 var entities = [];
 var spritesheet = "interiors";
 var tiles = [["interiors", 384, 0, 192, 96, 144, 192, 192, 96]];
@@ -579,8 +590,6 @@ var keyboard = new Keyboard({
             } else {
                 mouse.size.x = Math.max(1, mouse.size.x - 1);
             }
-
-            render();
         }
     },
     ArrowRight: {
@@ -590,8 +599,6 @@ var keyboard = new Keyboard({
             } else {
                 mouse.size.x = Math.min(image[spritesheet].width / SIZE, mouse.size.x + 1);
             }
-
-            render();
         }
     },
     ArrowUp: {
@@ -601,8 +608,6 @@ var keyboard = new Keyboard({
             } else {
                 mouse.size.y = Math.max(1, mouse.size.y - 1);
             }
-
-            render();
         }
     },
     ArrowDown: {
@@ -612,24 +617,33 @@ var keyboard = new Keyboard({
             } else {
                 mouse.size.y = Math.min(image[spritesheet].height / SIZE, mouse.size.y + 1);
             }
-
-            render();
         }
     }
 });
 
+function init() {
+    /**
+     * @todo add debounce
+     */
+
+    canvas.width = document.body.clientWidth;
+    canvas.height = document.body.clientHeight;
+}
+
+// window setup
+window.addEventListener("resize", init);
+
 // body setup
 document.documentElement.style.height = "100%";
+document.addEventListener("focus", render);
 document.body.style.overflow = "hidden";
 document.body.style.height = "100%";
 document.body.style.margin = "0";
-document.addEventListener("focus", render);
 
 // canvas setup
 var canvas = document.querySelector("canvas");
 
-canvas.width = document.body.clientWidth;
-canvas.height = document.body.clientHeight;
+init();
 canvas.focus();
 
 canvas.addEventListener("mousemove", mouse.onEvent);
@@ -647,21 +661,75 @@ context.textAlign = "left";
 context.textBaseline = "middle";
 context.webkitImageSmoothingEnabled = false;
 context.imageSmoothingEnabled = false;
+context.strokeStyle = "#FFF";
+context.lineWidth = 1;
 
 var image = {
-    ui: new Tilesheet("/assets/modern_interiors/4_User_Interface_Elements/UI_48x48.png")
+    ui: new Tilesheet("/assets/modern_interiors/4_User_Interface_Elements/UI_48x48.png"),
+    character: new Tilesheet(
+        "/assets/modern_interiors/2_Characters/Character_Generator/0_Premade_Characters/48x48/Premade_Character_48x48_19.png"
+    )
 };
 
-image.ui.createTile("speech", 4, 0, 1, 2).setSplit(33, 48, 3, 6);
+image.ui
+    .createTile(
+        "speech",
+        {
+            x: 4,
+            y: 0
+        },
+        {
+            x: 1,
+            y: 2
+        }
+    )
+    .setSplit(
+        {
+            x: 33,
+            y: 48
+        },
+        {
+            x: 3,
+            y: 6
+        }
+    );
 
-Object.keys(image).forEach(function (name) {
-    image[name].onload = function () {
-        render(true);
-    };
-});
+image.character.createAnimation(
+    "walk",
+    {
+        x: 1,
+        y: 2
+    },
+    [
+        {
+            x: 0,
+            y: 4
+        },
+        {
+            x: 1,
+            y: 4
+        },
+        {
+            x: 2,
+            y: 4
+        },
+        {
+            x: 3,
+            y: 4
+        },
+        {
+            x: 4,
+            y: 4
+        },
+        {
+            x: 5,
+            y: 4
+        }
+    ]
+);
 
 getSheet("interiors", "1_Interiors/48x48/Theme_Sorter_48x48/18_Jail_48x48.png");
-getSheet("character", "2_Characters/Character_Generator/0_Premade_Characters/48x48/Premade_Character_48x48_19.png");
+// getSheet("character", "2_Characters/Character_Generator/0_Premade_Characters/48x48/Premade_Character_48x48_19.png");
 // getSheet("ui", "4_User_Interface_Elements/UI_48x48.png");
 getSheet("floor", "1_Interiors/48x48/Room_Builder_subfiles_48x48/Room_Builder_Floors_48x48.png");
 
@@ -673,10 +741,8 @@ entities.push(
     })
 );
 
-function render(is_force) {
-    if (is_force || document.hasFocus()) {
-        first_render = false;
-
+function render() {
+    if (document.hasFocus()) {
         context.clearRect(0, 0, canvas.width, canvas.height);
         canvas.style.cursor = "default";
 
@@ -695,7 +761,8 @@ function render(is_force) {
 
         // cursor
         context.globalAlpha = 0.3;
-        var is_draw_mode = keyboard.isPressed("Shift");
+
+        var is_draw_mode = keyboard.isPressed("CapsLock");
         if (is_draw_mode) {
             context.drawImage(
                 image[spritesheet],
@@ -705,18 +772,23 @@ function render(is_force) {
                 mouse.size.y * SIZE,
                 ...mouse.getCursor()
             );
-
-            context.strokeStyle = "#000";
-            context.lineWidth = 1;
-            context.setLineDash([SIZE / 3, SIZE / 3, SIZE / 3, 0]);
-            context.strokeRect(...mouse.getCursor(0.5));
         }
+
+        context.setLineDash(is_draw_mode ? [] : [SIZE / 3, SIZE / 3, SIZE / 3, 0]);
+        context.strokeRect(...mouse.getCursor(0.5));
         context.globalAlpha = 1;
 
         mouse.onMove();
+
+        image.character.animation.walk.render(context, {
+            x: 4,
+            y: 4
+        });
     }
+
+    frame += 1;
+
+    requestAnimationFrame(render);
 }
 
-setInterval(render, 100);
-
-render(true);
+render();
