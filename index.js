@@ -10,13 +10,12 @@ async function main() {
         root: __dirname,
     };
 
-    await srv.add(Logger, options);
+    srv.extensions
+        .addExtension(Logger, options)
+        .addExtension(Http, options)
+        .addExtension(Socket, options);
 
-    await srv.add(Http, options);
-
-    await srv.add(Socket, options);
-
-    srv.start();
+    await srv.start();
 }
 
 main();
