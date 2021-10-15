@@ -621,31 +621,6 @@ var keyboard = new Keyboard({
     }
 });
 
-function init() {
-    /**
-     * @todo add debounce
-     */
-
-    canvas.width = document.body.clientWidth;
-    canvas.height = document.body.clientHeight;
-}
-
-// window setup
-window.addEventListener("resize", init);
-
-// body setup
-document.documentElement.style.height = "100%";
-document.addEventListener("focus", render);
-document.body.style.overflow = "hidden";
-document.body.style.height = "100%";
-document.body.style.margin = "0";
-
-// canvas setup
-var canvas = document.querySelector("canvas");
-
-init();
-canvas.focus();
-
 canvas.addEventListener("mousemove", mouse.onEvent);
 canvas.addEventListener("mousedown", mouse.onEvent);
 canvas.addEventListener("mouseup", mouse.onEvent);
@@ -653,16 +628,6 @@ canvas.addEventListener("wheel", mouse.onEvent);
 
 canvas.addEventListener("keyup", keyboard.onEvent);
 canvas.addEventListener("keydown", keyboard.onEvent);
-
-// context setup
-var context = canvas.getContext("2d");
-context.font = "13px Courier New";
-context.textAlign = "left";
-context.textBaseline = "middle";
-context.webkitImageSmoothingEnabled = false;
-context.imageSmoothingEnabled = false;
-context.strokeStyle = "#FFF";
-context.lineWidth = 1;
 
 var image = {
     ui: new Tilesheet("/assets/modern_interiors/4_User_Interface_Elements/UI_48x48.png"),
