@@ -1,5 +1,5 @@
 function inShadow(context, callback) {
-    context.shadowBlur = Character.SHADOW_SIZE;
+    context.shadowBlur = 3;
     context.shadowOffsetY = 3;
     context.shadowColor = "#00000088";
 
