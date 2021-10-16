@@ -35,10 +35,10 @@ class Mouse {
 
         elements.reverse().forEach(
             function (element) {
-                if (element.complex instanceof Complex) {
+                if (typeof element.complex === "object") {
                     let index = this.mouseover.indexOf(element);
 
-                    if (element.complex.isTouching(this.cursor)) {
+                    if (Object.values(element.complex).slice(-1)[0].isTouching(this.cursor)) {
                         // touching
                         if (typeof element.onMouseOver === "function" && index === -1) {
                             element.onMouseOver();
