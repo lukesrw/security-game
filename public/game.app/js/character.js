@@ -17,25 +17,40 @@ function getSpritesheet(src) {
     });
 }
 
+let cache_getImage = {};
+
 let character_src = "/assets/modern_interiors/2_Characters/Character_Generator/";
 let character_animations = {
     idle: {
         coords: {
-            right: new Vector(0, 0),
-            up: new Vector(1, 0),
-            left: new Vector(2, 0),
-            down: new Vector(3, 0)
+            right: new Vector(0, 2),
+            up: new Vector(6, 2),
+            left: new Vector(12, 2),
+            down: new Vector(18, 2)
         },
-        size: new Vector(1, 2)
+        size: new Vector(1, 2),
+        length: 6
+    },
+    walk: {
+        coords: {
+            right: new Vector(0, 4),
+            up: new Vector(6, 4),
+            left: new Vector(12, 4),
+            down: new Vector(18, 4)
+        },
+        size: new Vector(1, 2),
+        length: 6
     }
 };
 
 class Character {
     constructor(view, options, coords) {
+        this.key = false;
         this.view = view;
         this.coords = coords;
         this.is_rendering = false;
-        this.cache = {};
+        this.tick = 0;
+        this.frame_delay = 0;
         this.raw = {
             frame: 0,
             is_hover: false,
@@ -58,57 +73,63 @@ class Character {
                     get: function () {
                         let value = this.raw[property];
 
-                        if (value) {
-                            switch (property) {
-                                case "accessory":
-                                    return character_src + accessories.getPath(value);
+                        switch (property) {
+                            case "accessory":
+                                return character_src + accessories.getPath(value);
 
-                                case "body":
-                                    return character_src + bodies.getPath(value, this.is_kid);
+                            case "body":
+                                return character_src + bodies.getPath(value, this.is_kid);
 
-                                case "book":
-                                    return character_src + books.getPath(value);
+                            case "book":
+                                return character_src + books.getPath(value);
 
-                                case "eyes":
-                                    return character_src + eyes.getPath(value, this.is_kid);
+                            case "eyes":
+                                return character_src + eyes.getPath(value, this.is_kid);
 
-                                case "hair":
-                                    return character_src + hairs.getPath(value, this.is_kid);
+                            case "hair":
+                                return character_src + hairs.getPath(value, this.is_kid);
 
-                                case "outfit":
-                                    return character_src + outfits.getPath(value, this.is_kid);
+                            case "outfit":
+                                return character_src + outfits.getPath(value, this.is_kid);
 
-                                case "phone":
-                                    return character_src + phones.getPath(value);
-                            }
-
-                            if (Array.isArray(value)) {
-                                return value[0];
-                            }
-
-                            return value;
+                            case "phone":
+                                return character_src + phones.getPath(value);
                         }
 
-                        return false;
+                        return Array.isArray(value) ? value[0] : value;
                     },
                     set: function (value) {
-                        if (!Array.isArray(value)) {
-                            value = [value];
+                        switch (property) {
+                            case "animation":
+                                this.frame_delay = 1000 / this.getAnimation(value).length;
+                                // this.frame_delay = (1 / this.getAnimation(value).length) * 60;
+                                break;
+
+                            case "frame":
+                                // do not change
+                                break;
+
+                            default:
+                                if (!Array.isArray(value)) {
+                                    value = [value];
+                                }
+
+                                value = value.map(function (part) {
+                                    if (typeof part === "number") {
+                                        return ("0" + part).substr(-2);
+                                    }
+
+                                    return part;
+                                });
                         }
-
-                        value = value.map(function (part) {
-                            if (typeof part === "number") {
-                                return ("0" + part).substr(-2);
-                            }
-
-                            return part;
-                        });
 
                         this.raw[property] = value;
                     }.bind(this)
                 });
             }.bind(this)
         );
+
+        options = Object.assign(this.raw, options);
 
         Object.keys(options).forEach(
             function (property) {
@@ -125,29 +146,46 @@ class Character {
             function (resolve) {
                 let key = Object.values(this.raw).join("|");
 
-                if (key in this.cache) return resolve(this.cache[key]);
+                if (key in cache_getImage) {
+                    if (this.complex !== cache_getImage[key].complex) {
+                        this.complex = cache_getImage[key].complex;
+                    }
 
-                this.cache[key] = false;
+                    return resolve(cache_getImage[key].img);
+                }
 
-                Promise.all(
-                    Character.RENDER_ORDER.filter(
-                        function (part) {
-                            return this[part];
-                        }.bind(this)
-                    ).map(
-                        function (part) {
-                            return getSpritesheet(this[part]);
-                        }.bind(this)
-                    )
-                )
+                if (this.key) {
+                    this.complex = cache_getImage[this.key].complex;
+
+                    resolve(cache_getImage[this.key].img);
+                }
+
+                cache_getImage[key] = false;
+
+                let parts = Character.RENDER_ORDER.filter(
+                    function (part) {
+                        return this[part];
+                    }.bind(this)
+                ).map(
+                    function (part) {
+                        return getSpritesheet(this[part]);
+                    }.bind(this)
+                );
+
+                Promise.all(parts)
                     .then(
                         function (spritesheets) {
-                            let animation = character_animations[this.animation];
+                            let animation = this.getAnimation();
                             let canvas = document.createElement("canvas");
-                            canvas.width = SIZE;
+                            canvas.width = SIZE * 2;
                             canvas.height = SIZE * 10;
 
                             let context = canvas.getContext("2d");
+
+                            cache_getImage[key] = {
+                                img: new Image(),
+                                complex: {}
+                            };
 
                             spritesheets.forEach(
                                 function (spritesheet, spritesheet_i) {
@@ -159,8 +197,8 @@ class Character {
 
                                         context.drawImage(
                                             spritesheet.img,
-                                            animation.coords[this.facing].x * SIZE,
-                                            animation.coords[this.facing].y * SIZE,
+                                            animation.coords.x * SIZE,
+                                            animation.coords.y * SIZE,
                                             animation.size.x * SIZE,
                                             animation.size.y * SIZE,
                                             0,
@@ -168,35 +206,29 @@ class Character {
                                             animation.size.x * SIZE,
                                             animation.size.y * SIZE
                                         );
+
+                                        cache_getImage[key].complex[parts[spritesheet_i]] = Complex.fromImage(
+                                            this.coords,
+                                            canvas,
+                                            0,
+                                            0,
+                                            SIZE,
+                                            SIZE * 10,
+                                            SIZE,
+                                            SIZE * 10
+                                        );
                                     }
                                 }.bind(this)
                             );
 
-                            let shadow_canvas = document.createElement("canvas");
-                            let shadow_context = shadow_canvas.getContext("2d");
+                            cache_getImage[key].img.onload = function () {
+                                this.complex = cache_getImage[key].complex;
+                                this.key = key;
 
-                            if (this.is_hover) shadow_context.globalAlpha = 0.5;
-
-                            inShadow(shadow_context, function () {
-                                shadow_context.drawImage(canvas, Character.SHADOW_SIZE, Character.SHADOW_SIZE);
-                            });
-
-                            this.cache[key] = new Image();
-                            this.cache[key].onload = function () {
-                                this.complex = Complex.fromImage(
-                                    this.coords,
-                                    this.cache[key],
-                                    0,
-                                    0,
-                                    SIZE,
-                                    SIZE * 2,
-                                    SIZE,
-                                    SIZE * 2
-                                );
-
-                                return resolve(this.cache[key]);
+                                return resolve(cache_getImage[key].img);
                             }.bind(this);
-                            this.cache[key].src = shadow_canvas.toDataURL();
+
+                            cache_getImage[key].img.src = canvas.toDataURL();
                         }.bind(this)
                     )
                     .catch(console.log);
@@ -220,21 +252,42 @@ class Character {
         }
     }
 
-    async render() {
+    getAnimation(value) {
+        let animation = character_animations[value || this.animation];
+
+        return {
+            coords: animation.coords[this.facing].clone().add({
+                x: this.frame
+            }),
+            size: animation.size,
+            length: animation.length
+        };
+    }
+
+    render() {
+        this.tick += 10;
+        if (this.tick >= this.frame_delay) {
+            this.tick = 0;
+            this.frame = (this.frame + 1) % this.getAnimation().length;
+        }
+
         if (!this.is_rendering) {
             this.is_rendering = true;
 
-            let img = await this.getImage();
+            this.getImage().then(
+                function (image) {
+                    this.view.context.globalAlpha = this.is_hover ? 0.5 : 1;
 
-            if (img) {
-                this.view.context.drawImage(
-                    img,
-                    this.coords.x - Character.SHADOW_SIZE,
-                    this.coords.y - Character.SHADOW_SIZE
-                );
-            }
+                    inShadow(
+                        this.view.context,
+                        function () {
+                            this.view.context.drawImage(image, this.coords.x, this.coords.y);
+                        }.bind(this)
+                    );
 
-            this.is_rendering = false;
+                    this.is_rendering = false;
+                }.bind(this)
+            );
         }
     }
 }
