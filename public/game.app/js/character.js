@@ -40,6 +40,19 @@ let character_animations = {
         },
         size: new Vector(1, 2),
         length: 6
+    },
+    sleep: {
+        coords: new Vector(0, 6),
+        size: new Vector(1, 2),
+        length: 6
+    },
+    sit_over: {
+        coords: {
+            right: new Vector(0, 8),
+            left: new Vector(6, 8)
+        },
+        size: new Vector(1, 2),
+        length: 6
     }
 };
 
@@ -256,7 +269,7 @@ class Character {
         let animation = character_animations[value || this.animation];
 
         return {
-            coords: animation.coords[this.facing].clone().add({
+            coords: (animation.coords[this.facing] || animation.coords).clone().add({
                 x: this.frame
             }),
             size: animation.size,
