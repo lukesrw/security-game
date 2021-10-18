@@ -3,21 +3,25 @@ function getSpritesheet(src) {
     return new Promise(function (resolve) {
         if (src in load_getSpritesheet) {
             return resolve(load_getSpritesheet[src]);
-        } else {
-            load_getSpritesheet[src] = {
-                img: new Image()
-            };
-
-            load_getSpritesheet[src].img.onload = function () {
-                return resolve(load_getSpritesheet[src]);
-            };
-
-            load_getSpritesheet[src].img.src = src;
         }
+
+        load_getSpritesheet[src] = {
+            img: new Image()
+        };
+
+        load_getSpritesheet[src].img.onload = function () {
+            return resolve(load_getSpritesheet[src]);
+        };
+
+        load_getSpritesheet[src].img.src = src;
     });
 }
 
 let cache_getImage = {};
+
+/**
+ * @todo automate the creation of animations dummy
+ */
 
 let character_src = "/assets/modern_interiors/2_Characters/Character_Generator/";
 let character_animations = {
@@ -29,7 +33,8 @@ let character_animations = {
             down: new Vector(18, 2)
         },
         size: new Vector(1, 2),
-        length: 6
+        length: 6,
+        delay: 10
     },
     walk: {
         coords: {
@@ -39,12 +44,14 @@ let character_animations = {
             down: new Vector(18, 4)
         },
         size: new Vector(1, 2),
-        length: 6
+        length: 6,
+        delay: 10
     },
     sleep: {
         coords: new Vector(0, 6),
         size: new Vector(1, 2),
-        length: 6
+        length: 6,
+        delay: 10
     },
     sit_over: {
         coords: {
@@ -52,7 +59,197 @@ let character_animations = {
             left: new Vector(6, 8)
         },
         size: new Vector(1, 2),
-        length: 6
+        length: 6,
+        delay: 10
+    },
+    sit_under: {
+        coords: {
+            right: new Vector(0, 10),
+            left: new Vector(6, 10)
+        },
+        size: new Vector(1, 2),
+        length: 6,
+        delay: 10
+    },
+    phone: {
+        coords: {
+            down: new Vector(0, 12)
+        },
+        size: new Vector(1, 2),
+        length: 8,
+        reset: 3,
+        end: "phone_away",
+        delay: 10
+    },
+    phone_away: {
+        coords: {
+            down: new Vector(9, 12)
+        },
+        size: new Vector(1, 2),
+        length: 3,
+        reset: "idle",
+        delay: 10
+    },
+    book: {
+        coords: {
+            down: new Vector(0, 14)
+        },
+        size: new Vector(1, 2),
+        length: 5,
+        reset: 0,
+        delay: 10
+    },
+    page: {
+        coords: {
+            down: new Vector(6, 14)
+        },
+        size: new Vector(1, 2),
+        length: 6,
+        reset: "book",
+        end: "book",
+        delay: 10
+    },
+    cart: {
+        coords: {
+            right: new Vector(0, 16),
+            up: new Vector(6, 16),
+            left: new Vector(12, 16),
+            down: new Vector(18, 16)
+        },
+        size: new Vector(1, 2),
+        length: 6,
+        delay: 10
+    },
+    pick_up: {
+        coords: {
+            right: new Vector(0, 18),
+            up: new Vector(12, 18),
+            left: new Vector(24, 18),
+            down: new Vector(36, 18)
+        },
+        size: new Vector(1, 2),
+        length: 12,
+        delay: 10,
+        reset: "idle"
+    },
+    gift: {
+        coords: {
+            right: new Vector(0, 20),
+            up: new Vector(10, 20),
+            left: new Vector(20, 20),
+            down: new Vector(30, 20)
+        },
+        size: new Vector(1, 2),
+        length: 10,
+        delay: 10,
+        reset: "idle"
+    },
+    lift: {
+        coords: {
+            right: new Vector(0, 22),
+            up: new Vector(14, 22),
+            left: new Vector(28, 22),
+            down: new Vector(42, 22)
+        },
+        size: new Vector(1, 2),
+        length: 14,
+        reset: "idle",
+        delay: 10
+    },
+    throw: {
+        coords: {
+            right: new Vector(0, 24),
+            up: new Vector(14, 24),
+            left: new Vector(28, 24),
+            down: new Vector(42, 24)
+        },
+        size: new Vector(1, 2),
+        length: 14,
+        reset: "idle",
+        delay: 10
+    },
+    hit: {
+        coords: {
+            right: new Vector(0, 26),
+            up: new Vector(6, 26),
+            left: new Vector(12, 26),
+            down: new Vector(18, 26)
+        },
+        size: new Vector(1, 2),
+        length: 6,
+        reset: "idle",
+        delay: 10
+    },
+    punch: {
+        coords: {
+            right: new Vector(0, 28),
+            up: new Vector(6, 28),
+            left: new Vector(12, 28),
+            down: new Vector(18, 28)
+        },
+        size: new Vector(1, 2),
+        length: 6,
+        reset: "idle",
+        delay: 10
+    },
+    stab: {
+        coords: {
+            right: new Vector(0, 30),
+            up: new Vector(6, 30),
+            left: new Vector(12, 30),
+            down: new Vector(18, 30)
+        },
+        size: new Vector(1, 2),
+        length: 6,
+        reset: "idle",
+        delay: 10
+    },
+    grab_gun: {
+        coords: {
+            right: new Vector(0, 32),
+            up: new Vector(4, 32),
+            left: new Vector(8, 32),
+            down: new Vector(12, 32)
+        },
+        size: new Vector(1, 2),
+        length: 6,
+        reset: "idle_gun",
+        delay: 10
+    },
+    idle_gun: {
+        coords: {
+            right: new Vector(0, 34),
+            up: new Vector(6, 34),
+            left: new Vector(12, 34),
+            down: new Vector(18, 34)
+        },
+        size: new Vector(1, 2),
+        length: 6,
+        delay: 10
+    },
+    shoot: {
+        coords: {
+            right: new Vector(0, 36),
+            up: new Vector(3, 36),
+            left: new Vector(6, 36),
+            down: new Vector(8, 36)
+        },
+        size: new Vector(1, 2),
+        length: 3,
+        delay: 10,
+        reset: "idle_gun"
+    },
+    hurt: {
+        coords: {
+            right: new Vector(0, 38),
+            up: new Vector(3, 38),
+            left: new Vector(6, 38),
+            down: new Vector(9, 38)
+        },
+        size: new Vector(1, 2),
+        length: 3,
+        delay: 10,
+        reset: "idle"
     }
 };
 
@@ -113,11 +310,6 @@ class Character {
                     },
                     set: function (value) {
                         switch (property) {
-                            case "animation":
-                                this.frame_delay = 1000 / this.getAnimation(value).length;
-                                // this.frame_delay = (1 / this.getAnimation(value).length) * 60;
-                                break;
-
                             case "frame":
                                 // do not change
                                 break;
@@ -134,6 +326,12 @@ class Character {
 
                                     return part;
                                 });
+
+                                if (property === "animation") {
+                                    if (Array.isArray(this.raw[property])) {
+                                        value = this.raw[property].concat(value);
+                                    }
+                                }
                         }
 
                         this.raw[property] = value;
@@ -151,7 +349,6 @@ class Character {
         );
     }
 
-    static SHADOW_SIZE = 5;
     static RENDER_ORDER = ["body", "eyes", "outfit", "hair", "accessory", "phone", "book"];
 
     getImage() {
@@ -167,7 +364,7 @@ class Character {
                     return resolve(cache_getImage[key].img);
                 }
 
-                if (this.key) {
+                if (this.key && this.key in cache_getImage) {
                     this.complex = cache_getImage[this.key].complex;
 
                     resolve(cache_getImage[this.key].img);
@@ -273,15 +470,43 @@ class Character {
                 x: this.frame
             }),
             size: animation.size,
-            length: animation.length
+            length: animation.length,
+            reset: animation.reset || 0,
+            delay: animation.delay,
+            end: animation.end
         };
     }
 
     render() {
-        this.tick += 10;
+        this.tick += 1;
         if (this.tick >= this.frame_delay) {
             this.tick = 0;
-            this.frame = (this.frame + 1) % this.getAnimation().length;
+            this.frame += 1;
+
+            // cycle rendering
+            let animation = this.getAnimation();
+
+            if (this.frame_delay === 0) this.frame_delay = animation.delay;
+
+            if (this.frame === animation.length) {
+                if (typeof animation.reset === "string" && this.raw.animation.length === 1) {
+                    this.raw.animation.splice(1, 0, animation.reset);
+                }
+
+                if (this.raw.animation.length > 1) {
+                    if (typeof animation.end === "string") {
+                        this.raw.animation.splice(1, 0, animation.end);
+                    }
+
+                    this.raw.animation.shift();
+
+                    animation = this.getAnimation();
+                    this.frame_delay = animation.delay;
+                    this.frame = 0;
+                } else {
+                    this.frame = animation.reset || 0;
+                }
+            }
         }
 
         if (!this.is_rendering) {
