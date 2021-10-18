@@ -18,240 +18,88 @@ function getSpritesheet(src) {
 }
 
 let cache_getImage = {};
-
-/**
- * @todo automate the creation of animations dummy
- */
-
 let character_src = "/assets/modern_interiors/2_Characters/Character_Generator/";
 let character_animations = {
-    idle: {
-        coords: {
-            right: new Vector(0, 2),
-            up: new Vector(6, 2),
-            left: new Vector(12, 2),
-            down: new Vector(18, 2)
-        },
-        size: new Vector(1, 2),
-        length: 6,
-        delay: 10
-    },
-    walk: {
-        coords: {
-            right: new Vector(0, 4),
-            up: new Vector(6, 4),
-            left: new Vector(12, 4),
-            down: new Vector(18, 4)
-        },
-        size: new Vector(1, 2),
-        length: 6,
-        delay: 10
-    },
-    sleep: {
-        coords: new Vector(0, 6),
-        size: new Vector(1, 2),
-        length: 6,
-        delay: 10
-    },
-    sit_over: {
-        coords: {
-            right: new Vector(0, 8),
-            left: new Vector(6, 8)
-        },
-        size: new Vector(1, 2),
-        length: 6,
-        delay: 10
-    },
-    sit_under: {
-        coords: {
-            right: new Vector(0, 10),
-            left: new Vector(6, 10)
-        },
-        size: new Vector(1, 2),
-        length: 6,
-        delay: 10
-    },
-    phone: {
-        coords: {
-            down: new Vector(0, 12)
-        },
-        size: new Vector(1, 2),
-        length: 8,
-        reset: 3,
-        end: "phone_away",
-        delay: 10
-    },
-    phone_away: {
-        coords: {
-            down: new Vector(9, 12)
-        },
-        size: new Vector(1, 2),
-        length: 3,
-        reset: "idle",
-        delay: 10
-    },
-    book: {
-        coords: {
-            down: new Vector(0, 14)
-        },
-        size: new Vector(1, 2),
-        length: 5,
-        reset: 0,
-        delay: 10
-    },
-    page: {
-        coords: {
-            down: new Vector(6, 14)
-        },
-        size: new Vector(1, 2),
-        length: 6,
-        reset: "book",
-        end: "book",
-        delay: 10
-    },
-    cart: {
-        coords: {
-            right: new Vector(0, 16),
-            up: new Vector(6, 16),
-            left: new Vector(12, 16),
-            down: new Vector(18, 16)
-        },
-        size: new Vector(1, 2),
-        length: 6,
-        delay: 10
-    },
-    pick_up: {
-        coords: {
-            right: new Vector(0, 18),
-            up: new Vector(12, 18),
-            left: new Vector(24, 18),
-            down: new Vector(36, 18)
-        },
-        size: new Vector(1, 2),
-        length: 12,
-        delay: 10,
-        reset: "idle"
-    },
-    gift: {
-        coords: {
-            right: new Vector(0, 20),
-            up: new Vector(10, 20),
-            left: new Vector(20, 20),
-            down: new Vector(30, 20)
-        },
-        size: new Vector(1, 2),
-        length: 10,
-        delay: 10,
-        reset: "idle"
-    },
-    lift: {
-        coords: {
-            right: new Vector(0, 22),
-            up: new Vector(14, 22),
-            left: new Vector(28, 22),
-            down: new Vector(42, 22)
-        },
-        size: new Vector(1, 2),
-        length: 14,
-        reset: "idle",
-        delay: 10
-    },
-    throw: {
-        coords: {
-            right: new Vector(0, 24),
-            up: new Vector(14, 24),
-            left: new Vector(28, 24),
-            down: new Vector(42, 24)
-        },
-        size: new Vector(1, 2),
-        length: 14,
-        reset: "idle",
-        delay: 10
-    },
-    hit: {
-        coords: {
-            right: new Vector(0, 26),
-            up: new Vector(6, 26),
-            left: new Vector(12, 26),
-            down: new Vector(18, 26)
-        },
-        size: new Vector(1, 2),
-        length: 6,
-        reset: "idle",
-        delay: 10
-    },
-    punch: {
-        coords: {
-            right: new Vector(0, 28),
-            up: new Vector(6, 28),
-            left: new Vector(12, 28),
-            down: new Vector(18, 28)
-        },
-        size: new Vector(1, 2),
-        length: 6,
-        reset: "idle",
-        delay: 10
-    },
-    stab: {
-        coords: {
-            right: new Vector(0, 30),
-            up: new Vector(6, 30),
-            left: new Vector(12, 30),
-            down: new Vector(18, 30)
-        },
-        size: new Vector(1, 2),
-        length: 6,
-        reset: "idle",
-        delay: 10
-    },
-    grab_gun: {
-        coords: {
-            right: new Vector(0, 32),
-            up: new Vector(4, 32),
-            left: new Vector(8, 32),
-            down: new Vector(12, 32)
-        },
-        size: new Vector(1, 2),
-        length: 6,
-        reset: "idle_gun",
-        delay: 10
-    },
-    idle_gun: {
-        coords: {
-            right: new Vector(0, 34),
-            up: new Vector(6, 34),
-            left: new Vector(12, 34),
-            down: new Vector(18, 34)
-        },
-        size: new Vector(1, 2),
-        length: 6,
-        delay: 10
-    },
-    shoot: {
-        coords: {
-            right: new Vector(0, 36),
-            up: new Vector(3, 36),
-            left: new Vector(6, 36),
-            down: new Vector(8, 36)
-        },
-        size: new Vector(1, 2),
-        length: 3,
-        delay: 10,
-        reset: "idle_gun"
-    },
-    hurt: {
-        coords: {
-            right: new Vector(0, 38),
-            up: new Vector(3, 38),
-            left: new Vector(6, 38),
-            down: new Vector(9, 38)
-        },
-        size: new Vector(1, 2),
-        length: 3,
-        delay: 10,
-        reset: "idle"
-    }
+    idle: 6,
+    walk: 6,
+    sleep: 6,
+    sit_over: 6,
+    sit_under: 6,
+    phone: 8,
+    phone_away: 3,
+    book: 6,
+    page: 6,
+    cart: 6,
+    pick_up: 12,
+    gift: 10,
+    lift: 14,
+    throw: 14,
+    hit: 6,
+    punch: 6,
+    stab: 6,
+    grab_gun: 4,
+    idle_gun: 6,
+    shoot: 3,
+    hurt: 3
 };
+
+Object.keys(character_animations).forEach(function (name, name_i) {
+    if (name_i > 5) {
+        name_i -= 1;
+        if (name_i > 6) {
+            name_i -= 1;
+        }
+    }
+
+    console.table({
+        name: name,
+        name_i: name_i,
+        calc: 2 + name_i * 2
+    });
+
+    name_i = 2 + name_i * 2;
+
+    character_animations[name] = {
+        coords: {
+            right: new Vector(0, name_i),
+            up: new Vector(character_animations[name], name_i),
+            left: new Vector(character_animations[name] * 2, name_i),
+            down: new Vector(character_animations[name] * 3, name_i)
+        },
+        size: new Vector(1, 2),
+        length: character_animations[name],
+        delay: 10
+    };
+
+    switch (name) {
+        case "phone":
+            character_animations[name].end = "phone_away";
+            character_animations[name].reset = 3;
+            break;
+
+        case "phone_away":
+        case "pick_up":
+        case "gift":
+        case "lift":
+        case "throw":
+        case "hit":
+        case "punch":
+        case "stab":
+        case "hurt":
+            character_animations[name].reset = "idle";
+            break;
+
+        case "page":
+            character_animations[name].reset = "book";
+            character_animations[name].end = "book";
+            break;
+
+        case "grab_gun":
+        case "shoot":
+            character_animations[name].reset = "idle_gun";
+            break;
+    }
+});
 
 class Character {
     constructor(view, options, coords) {
