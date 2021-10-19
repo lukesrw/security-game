@@ -4,6 +4,7 @@ class Mouse {
         this.view = view;
         this.mouseover = [];
         this.is_down = false;
+        this.target = game.entities[0];
 
         // listeners
         this.view.canvas.addEventListener(
@@ -33,7 +34,7 @@ class Mouse {
         this.coords.y = event.clientY;
         this.cursor = Digraph.fromPoint(this.coords);
 
-        elements.reverse().forEach(
+        game.entities.reverse().forEach(
             function (element) {
                 if (typeof element.complex === "object") {
                     let index = this.mouseover.indexOf(element);
@@ -69,13 +70,17 @@ class Mouse {
     }
 
     onClick() {
-        this.mouseover.some(function (element) {
-            if (typeof element.onClick === "function") {
-                return element.onClick() === false;
-            }
+        if (
+            !this.mouseover.some(function (element) {
+                if (typeof element.onClick === "function") {
+                    return element.onClick() === false;
+                }
 
-            return false;
-        });
+                return false;
+            })
+        ) {
+            this.target.destination.push(this.coords.clone());
+        }
     }
 }
 
