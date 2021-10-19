@@ -51,24 +51,49 @@ Object.keys(character_animations).forEach(function (name, name_i) {
         }
     }
 
-    console.table({
-        name: name,
-        name_i: name_i,
-        calc: 2 + name_i * 2
-    });
-
     name_i = 2 + name_i * 2;
+
+    let x_right = 0;
+    let x_up = character_animations[name];
+    let x_left = character_animations[name] * 2;
+    let x_down = character_animations[name] * 3;
+
+    switch (name) {
+        case "sit_over":
+        case "sit_under":
+            x_up = 15;
+            x_down = 15;
+            x_left = character_animations[name];
+            break;
+
+        case "phone":
+        case "phone_away":
+        case "sleep":
+        case "book":
+            x_left = 26;
+            x_right = 26;
+            x_up = 26;
+            x_down = 0;
+            break;
+
+        case "page":
+            x_left = 26;
+            x_right = 26;
+            x_up = 26;
+            x_down = 6;
+            break;
+    }
 
     character_animations[name] = {
         coords: {
-            right: new Vector(0, name_i),
-            up: new Vector(character_animations[name], name_i),
-            left: new Vector(character_animations[name] * 2, name_i),
-            down: new Vector(character_animations[name] * 3, name_i)
+            right: new Vector(x_right, name_i),
+            up: new Vector(x_up, name_i),
+            left: new Vector(x_left, name_i),
+            down: new Vector(x_down, name_i)
         },
         size: new Vector(1, 2),
         length: character_animations[name],
-        delay: 10
+        delay: 15
     };
 
     switch (name) {
@@ -125,6 +150,32 @@ class Character {
             is_kid: false
         };
 
+        this.destination = [];
+
+        this.velocity = new Vector();
+        this.velocity.addEventListener(
+            "x",
+            function (e) {
+                if (e.detail.new) {
+                    this.animation = "walk";
+                    this.facing = e.detail.new > 0 ? "right" : "left";
+                } else {
+                    this.animation = "idle";
+                }
+            }.bind(this)
+        );
+        this.velocity.addEventListener(
+            "y",
+            function (e) {
+                if (e.detail.new) {
+                    this.animation = "walk";
+                    this.facing = e.detail.new > 0 ? "down" : "up";
+                } else {
+                    this.animation = "idle";
+                }
+            }.bind(this)
+        );
+
         Object.keys(this.raw).forEach(
             function (property) {
                 Object.defineProperty(this, property, {
@@ -175,7 +226,7 @@ class Character {
                                     return part;
                                 });
 
-                                if (property === "animation") {
+                                if (property === "animation" || property === "facing") {
                                     if (Array.isArray(this.raw[property])) {
                                         value = this.raw[property].concat(value);
                                     }
@@ -224,19 +275,21 @@ class Character {
                     function (part) {
                         return this[part];
                     }.bind(this)
-                ).map(
-                    function (part) {
-                        return getSpritesheet(this[part]);
-                    }.bind(this)
                 );
 
-                Promise.all(parts)
+                Promise.all(
+                    parts.map(
+                        function (part) {
+                            return getSpritesheet(this[part]);
+                        }.bind(this)
+                    )
+                )
                     .then(
                         function (spritesheets) {
                             let animation = this.getAnimation();
                             let canvas = document.createElement("canvas");
                             canvas.width = SIZE * 2;
-                            canvas.height = SIZE * 10;
+                            canvas.height = SIZE * Character.RENDER_ORDER.length * 2;
 
                             let context = canvas.getContext("2d");
 
@@ -248,19 +301,17 @@ class Character {
                             spritesheets.forEach(
                                 function (spritesheet, spritesheet_i) {
                                     if (spritesheet) {
-                                        let offset = 0;
-                                        if (this.state === "part") {
-                                            offset = spritesheet_i * SIZE * 2;
-                                        }
+                                        let sy_offset = parts[spritesheet_i] === "phone" ? -4 : 0;
+                                        let dy_offset = this.state === "part" ? spritesheet_i * SIZE * 2 : 0;
 
                                         context.drawImage(
                                             spritesheet.img,
                                             animation.coords.x * SIZE,
-                                            animation.coords.y * SIZE,
+                                            (animation.coords.y + sy_offset) * SIZE,
                                             animation.size.x * SIZE,
                                             animation.size.y * SIZE,
                                             0,
-                                            offset,
+                                            dy_offset,
                                             animation.size.x * SIZE,
                                             animation.size.y * SIZE
                                         );
@@ -271,9 +322,9 @@ class Character {
                                             0,
                                             0,
                                             SIZE,
-                                            SIZE * 10,
+                                            SIZE * Character.RENDER_ORDER.length * 2,
                                             SIZE,
-                                            SIZE * 10
+                                            SIZE * Character.RENDER_ORDER.length * 2
                                         );
                                     }
                                 }.bind(this)
@@ -308,6 +359,8 @@ class Character {
         } else {
             this.state = "whole";
         }
+
+        return false;
     }
 
     getAnimation(value) {
@@ -326,6 +379,7 @@ class Character {
     }
 
     render() {
+        // animations
         this.tick += 1;
         if (this.tick >= this.frame_delay) {
             this.tick = 0;
@@ -336,7 +390,7 @@ class Character {
 
             if (this.frame_delay === 0) this.frame_delay = animation.delay;
 
-            if (this.frame === animation.length) {
+            if (this.frame >= animation.length) {
                 if (typeof animation.reset === "string" && this.raw.animation.length === 1) {
                     this.raw.animation.splice(1, 0, animation.reset);
                 }
@@ -354,9 +408,14 @@ class Character {
                 } else {
                     this.frame = animation.reset || 0;
                 }
+
+                if (this.raw.facing.length > 1) {
+                    this.raw.facing.shift();
+                }
             }
         }
 
+        // rendering
         if (!this.is_rendering) {
             this.is_rendering = true;
 
@@ -373,6 +432,60 @@ class Character {
 
                     this.is_rendering = false;
                 }.bind(this)
+            );
+        }
+
+        // destinations
+        while (this.destination.length) {
+            let dx = this.destination[0].x - this.coords.x - SIZE / 2;
+            let dy = this.destination[0].y - this.coords.y - SIZE * 2;
+
+            if (dx || dy) {
+                if (dx) {
+                    this.velocity.x = Math.sign(dx);
+                } else if (this.velocity.x) {
+                    this.velocity.x = 0;
+                    this.frame = 99;
+                } else {
+                    this.velocity.y = Math.sign(dy);
+                }
+
+                break;
+            } else if (this.velocity.y) {
+                this.velocity.y = 0;
+                this.frame = 99;
+            }
+
+            this.destination.shift();
+        }
+
+        // movement
+        if (this.animation === "walk" && this.velocity.dot() !== 0) {
+            this.coords.add(this.velocity);
+        }
+    }
+
+    walkTo(coords) {
+        let dx = coords.x - this.coords.x - SIZE / 2;
+        let dy = coords.y - this.coords.y - SIZE * 2;
+
+        if (dx) {
+            this.velocity.x = Math.sign(dx);
+        } else if (dy) {
+            this.velocity.x = 0;
+            this.velocity.y = Math.sign(dy);
+        } else {
+            this.velocity.y = 0;
+        }
+
+        console.log(this.velocity.x, this.velocity.y);
+
+        if (dx || dy) {
+            setTimeout(
+                function () {
+                    this.walkTo(coords);
+                }.bind(this),
+                1
             );
         }
     }
