@@ -7,3 +7,7 @@ function inShadow(context, callback) {
 
     context.shadowBlur = 0;
 }
+
+function toGrid(x_or_y) {
+    return Math.floor(x_or_y / SIZE) * SIZE;
+}
