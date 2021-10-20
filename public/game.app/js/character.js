@@ -93,7 +93,7 @@ Object.keys(character_animations).forEach(function (name, name_i) {
         },
         size: new Vector(1, 2),
         length: character_animations[name],
-        delay: 15
+        delay: 16
     };
 
     switch (name) {
@@ -156,23 +156,13 @@ class Character {
         this.velocity.addEventListener(
             "x",
             function (e) {
-                if (e.detail.new) {
-                    this.animation = "walk";
-                    this.facing = e.detail.new > 0 ? "right" : "left";
-                } else {
-                    this.animation = "idle";
-                }
+                this.velocityUpdate();
             }.bind(this)
         );
         this.velocity.addEventListener(
             "y",
             function (e) {
-                if (e.detail.new) {
-                    this.animation = "walk";
-                    this.facing = e.detail.new > 0 ? "down" : "up";
-                } else {
-                    this.animation = "idle";
-                }
+                this.velocityUpdate();
             }.bind(this)
         );
 
@@ -249,6 +239,32 @@ class Character {
     }
 
     static RENDER_ORDER = ["body", "eyes", "outfit", "hair", "accessory", "phone", "book"];
+
+    velocityUpdate() {
+        if (this.velocity.dot() === 0) {
+            if (this.animation !== "idle") {
+                this.animation = "idle";
+            }
+        } else {
+            let should_face = "down";
+
+            if (this.animation !== "walk") {
+                this.animation = "walk";
+            }
+
+            if (this.velocity.x !== 0) {
+                should_face = this.velocity.x > 0 ? "right" : "left";
+            } else {
+                should_face = this.velocity.y > 0 ? "down" : "up";
+            }
+
+            console.log("change facing", should_face);
+
+            if (this.facing !== should_face) {
+                this.facing = should_face;
+            }
+        }
+    }
 
     getImage() {
         return new Promise(
@@ -378,10 +394,16 @@ class Character {
         };
     }
 
+    skipAnimation() {
+        console.log("skipping animation", this.raw.animation);
+        // this.frame = Infinity;
+        // this.tick = Infinity;
+    }
+
     render() {
         // animations
         this.tick += 1;
-        if (this.tick >= this.frame_delay) {
+        if (this.tick >= this.frame_delay || this.raw.animation.length > 1) {
             this.tick = 0;
             this.frame += 1;
 
@@ -390,7 +412,7 @@ class Character {
 
             if (this.frame_delay === 0) this.frame_delay = animation.delay;
 
-            if (this.frame >= animation.length) {
+            if (this.frame >= animation.length || this.raw.animation.length > 1) {
                 if (typeof animation.reset === "string" && this.raw.animation.length === 1) {
                     this.raw.animation.splice(1, 0, animation.reset);
                 }
@@ -437,23 +459,62 @@ class Character {
 
         // destinations
         while (this.destination.length) {
-            let dx = this.destination[0].x - this.coords.x - SIZE / 2;
-            let dy = this.destination[0].y - this.coords.y - SIZE * 2;
+            let destination = this.destination[0];
+            let dx = destination.x - this.coords.x;
+            let dy = destination.y - this.coords.y - SIZE;
+
+            if (typeof destination.facing === "undefined") {
+                destination.facing = Math.floor(Math.random() * 2);
+            }
 
             if (dx || dy) {
-                if (dx) {
-                    this.velocity.x = Math.sign(dx);
-                } else if (this.velocity.x) {
-                    this.velocity.x = 0;
-                    this.frame = 99;
-                } else {
-                    this.velocity.y = Math.sign(dy);
+                switch (destination.facing) {
+                    case 0: // move X first
+                        if (dx) {
+                            if (this.velocity.x === 0) {
+                                console.log("setting x velocity");
+                                this.velocity.x = Math.sign(dx);
+                            }
+                        } else {
+                            if (this.velocity.y === 0) {
+                                console.log("setting y velocity");
+                                this.velocity.y = Math.sign(dy);
+                            }
+
+                            if (this.velocity.x !== 0) {
+                                console.log("unsetting x velocity");
+                                this.velocity.x = 0;
+                            }
+                        }
+                        break;
+
+                    case 1: // move Y first
+                        if (dy) {
+                            if (this.velocity.y === 0) {
+                                console.log("setting y velocity");
+                                this.velocity.y = Math.sign(dy);
+                            }
+                        } else {
+                            if (this.velocity.x === 0) {
+                                console.log("setting x velocity");
+                                this.velocity.x = Math.sign(dx);
+                            }
+
+                            if (this.velocity.y !== 0) {
+                                console.log("unsetting y velocity");
+                                this.velocity.y = 0;
+                            }
+                        }
+
+                        break;
                 }
 
                 break;
-            } else if (this.velocity.y) {
+            } else if (this.velocity.dot() !== 0) {
+                console.log("unsetting x/y velocity");
+                this.velocity.x = 0;
                 this.velocity.y = 0;
-                this.frame = 99;
+                this.skipAnimation();
             }
 
             this.destination.shift();
@@ -462,31 +523,6 @@ class Character {
         // movement
         if (this.animation === "walk" && this.velocity.dot() !== 0) {
             this.coords.add(this.velocity);
-        }
-    }
-
-    walkTo(coords) {
-        let dx = coords.x - this.coords.x - SIZE / 2;
-        let dy = coords.y - this.coords.y - SIZE * 2;
-
-        if (dx) {
-            this.velocity.x = Math.sign(dx);
-        } else if (dy) {
-            this.velocity.x = 0;
-            this.velocity.y = Math.sign(dy);
-        } else {
-            this.velocity.y = 0;
-        }
-
-        console.log(this.velocity.x, this.velocity.y);
-
-        if (dx || dy) {
-            setTimeout(
-                function () {
-                    this.walkTo(coords);
-                }.bind(this),
-                1
-            );
         }
     }
 }
