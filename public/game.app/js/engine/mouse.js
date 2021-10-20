@@ -45,12 +45,10 @@ class Mouse {
                             element.onMouseOver();
                             this.mouseover.push(element);
                         }
-                    } else {
+                    } else if (index !== -1 && typeof element.onMouseOut === "function") {
                         // not touching
-                        if (index !== -1 && typeof element.onMouseOut === "function") {
-                            element.onMouseOut();
-                            this.mouseover.splice(index, 1)[0];
-                        }
+                        element.onMouseOut();
+                        this.mouseover.splice(index, 1)[0];
                     }
                 }
             }.bind(this)
@@ -58,12 +56,25 @@ class Mouse {
     }
 
     onMouseDown() {
-        this.is_down = this.coords;
+        this.is_down = this.coords.clone();
+    }
+
+    toGrid() {
+        return {
+            x: toGrid(this.coords.x),
+            y: toGrid(this.coords.y)
+        };
+    }
+
+    onDrag() {
+        console.log("dragged from ", this.is_down.x, this.is_down.y, "to", this.coords.x, this.coords.y);
     }
 
     onMouseUp() {
         if (this.coords.x === this.is_down.x && this.coords.y === this.is_down.y) {
             this.onClick();
+        } else {
+            this.onDrag();
         }
 
         this.is_down = false;
@@ -79,9 +90,7 @@ class Mouse {
                 return false;
             })
         ) {
-            this.target.destination.push(this.coords.clone());
+            this.target.destination.push(this.toGrid());
         }
     }
 }
-
-let mouse = new Mouse(view);
