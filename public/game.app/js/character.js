@@ -93,7 +93,7 @@ Object.keys(character_animations).forEach(function (name, name_i) {
         },
         size: new Vector(1, 2),
         length: character_animations[name],
-        delay: 16
+        delay: 10
     };
 
     switch (name) {
@@ -156,13 +156,13 @@ class Character {
         this.velocity.addEventListener(
             "x",
             function (e) {
-                this.velocityUpdate();
+                // this.velocityUpdate();
             }.bind(this)
         );
         this.velocity.addEventListener(
             "y",
             function (e) {
-                this.velocityUpdate();
+                // this.velocityUpdate();
             }.bind(this)
         );
 
@@ -216,11 +216,11 @@ class Character {
                                     return part;
                                 });
 
-                                if (property === "animation" || property === "facing") {
-                                    if (Array.isArray(this.raw[property])) {
-                                        value = this.raw[property].concat(value);
-                                    }
-                                }
+                            // if (property === "animation" || property === "facing") {
+                            //     if (Array.isArray(this.raw[property])) {
+                            //         value = this.raw[property].concat(value);
+                            //     }
+                            // }
                         }
 
                         this.raw[property] = value;
@@ -241,16 +241,17 @@ class Character {
     static RENDER_ORDER = ["body", "eyes", "outfit", "hair", "accessory", "phone", "book"];
 
     velocityUpdate() {
+        console.log("x", this.velocity.x, "y", this.velocity.y);
+
         if (this.velocity.dot() === 0) {
             if (this.animation !== "idle") {
+                // console.trace();
+                console.log("setting idle");
                 this.animation = "idle";
+                this.skipAnimation();
             }
         } else {
             let should_face = "down";
-
-            if (this.animation !== "walk") {
-                this.animation = "walk";
-            }
 
             if (this.velocity.x !== 0) {
                 should_face = this.velocity.x > 0 ? "right" : "left";
@@ -263,6 +264,12 @@ class Character {
             if (this.facing !== should_face) {
                 this.facing = should_face;
             }
+
+            if (this.animation !== "walk") {
+                console.log("setting walk");
+                this.skipAnimation();
+                this.animation = "walk";
+            }
         }
     }
 
@@ -274,6 +281,9 @@ class Character {
                 if (key in cache_getImage) {
                     if (this.complex !== cache_getImage[key].complex) {
                         this.complex = cache_getImage[key].complex;
+                        for (let part in this.complex) {
+                            this.complex[part].position = this.coords;
+                        }
                     }
 
                     return resolve(cache_getImage[key].img);
@@ -281,6 +291,9 @@ class Character {
 
                 if (this.key && this.key in cache_getImage) {
                     this.complex = cache_getImage[this.key].complex;
+                    for (let part in this.complex) {
+                        this.complex[part].position = this.coords;
+                    }
 
                     resolve(cache_getImage[this.key].img);
                 }
@@ -348,6 +361,9 @@ class Character {
 
                             cache_getImage[key].img.onload = function () {
                                 this.complex = cache_getImage[key].complex;
+                                for (let part in this.complex) {
+                                    this.complex[part].position = this.coords;
+                                }
                                 this.key = key;
 
                                 return resolve(cache_getImage[key].img);
@@ -396,14 +412,14 @@ class Character {
 
     skipAnimation() {
         console.log("skipping animation", this.raw.animation);
-        // this.frame = Infinity;
-        // this.tick = Infinity;
+        this.frame = Infinity;
+        this.tick = Infinity;
     }
 
     render() {
         // animations
         this.tick += 1;
-        if (this.tick >= this.frame_delay || this.raw.animation.length > 1) {
+        if (this.tick >= this.frame_delay) {
             this.tick = 0;
             this.frame += 1;
 
@@ -412,7 +428,7 @@ class Character {
 
             if (this.frame_delay === 0) this.frame_delay = animation.delay;
 
-            if (this.frame >= animation.length || this.raw.animation.length > 1) {
+            if (this.frame >= animation.length) {
                 if (typeof animation.reset === "string" && this.raw.animation.length === 1) {
                     this.raw.animation.splice(1, 0, animation.reset);
                 }
@@ -458,63 +474,57 @@ class Character {
         }
 
         // destinations
+        let i = 0;
         while (this.destination.length) {
-            let destination = this.destination[0];
-            let dx = destination.x - this.coords.x;
-            let dy = destination.y - this.coords.y - SIZE;
-
-            if (typeof destination.facing === "undefined") {
-                destination.facing = Math.floor(Math.random() * 2);
+            i += 1;
+            if (i > 100) {
+                console.log("broke 100");
+                break;
             }
 
-            if (dx || dy) {
-                switch (destination.facing) {
-                    case 0: // move X first
-                        if (dx) {
-                            if (this.velocity.x === 0) {
-                                console.log("setting x velocity");
-                                this.velocity.x = Math.sign(dx);
-                            }
-                        } else {
-                            if (this.velocity.y === 0) {
-                                console.log("setting y velocity");
-                                this.velocity.y = Math.sign(dy);
-                            }
+            let destination = this.destination[0];
+            let difference = {
+                x: destination.x - this.coords.x,
+                y: destination.y - this.coords.y - SIZE
+            };
 
-                            if (this.velocity.x !== 0) {
-                                console.log("unsetting x velocity");
-                                this.velocity.x = 0;
-                            }
-                        }
-                        break;
+            if (typeof destination.facing === "undefined") {
+                destination.facing = Math.floor(Math.random() * 2) ? ["x", "y"] : ["y", "x"];
+            }
 
-                    case 1: // move Y first
-                        if (dy) {
-                            if (this.velocity.y === 0) {
-                                console.log("setting y velocity");
-                                this.velocity.y = Math.sign(dy);
-                            }
-                        } else {
-                            if (this.velocity.x === 0) {
-                                console.log("setting x velocity");
-                                this.velocity.x = Math.sign(dx);
-                            }
+            if (difference.x || difference.y) {
+                let first = destination.facing[0];
+                let second = destination.facing[1];
+                let did_change = false;
 
-                            if (this.velocity.y !== 0) {
-                                console.log("unsetting y velocity");
-                                this.velocity.y = 0;
-                            }
-                        }
+                if (difference[first]) {
+                    if (this.velocity[first] === 0) {
+                        console.log(`setting ${first} velocity`);
+                        this.velocity[first] = Math.sign(difference[first]) * 3;
+                        did_change = true;
+                    }
+                } else {
+                    if (this.velocity[second] === 0) {
+                        console.log(`setting ${second} velocity`);
+                        this.velocity[second] = Math.sign(difference[second]) * 3;
+                        did_change = true;
+                    }
 
-                        break;
+                    if (this.velocity[first] !== 0) {
+                        console.log(`unsetting ${first} velocity`);
+                        this.velocity[first] = 0;
+                        did_change = true;
+                    }
                 }
 
+                if (did_change) {
+                    this.velocityUpdate();
+                }
                 break;
             } else if (this.velocity.dot() !== 0) {
-                console.log("unsetting x/y velocity");
                 this.velocity.x = 0;
                 this.velocity.y = 0;
-                this.skipAnimation();
+                this.velocityUpdate();
             }
 
             this.destination.shift();
